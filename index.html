@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frases Aleatorias</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f5f5f5;
+        }
+
+        .frase-container {
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .frase {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .autor {
+            color: #666;
+            font-style: italic;
+        }
+
+        .metadata {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
+        .error {
+            background-color: #fff3f3;
+            color: #d32f2f;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .btn-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .btn-nueva-frase {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-nueva-frase:hover {
+            background-color: #45a049;
+        }
+
+        .btn-nueva-frase:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* Animación de carga */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+    </style>
+</head>
+<body>
+    <h1>Frases Aleatorias</h1>
+    <div id="frase" class="frase-container">
+        <div class="loading">Cargando...</div>
+    </div>
+    <div class="btn-container">
+        <button id="btnNuevaFrase" class="btn-nueva-frase" disabled>
+            Obtener nueva frase
+        </button>
+    </div>
+
+    <script>
+        // Configuración
+        const API_URL = 'https://davila.uno/api/?endpoint=random';
+        const fraseContainer = document.getElementById('frase');
+        const btnNuevaFrase = document.getElementById('btnNuevaFrase');
+
+        // Función principal para cargar una frase
+        async function cargarFraseAleatoria() {
+            mostrarCargando();
+            deshabilitarBoton();
+
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                mostrarFrase(data);
+            } catch (error) {
+                mostrarError(error);
+            } finally {
+                habilitarBoton();
+            }
+        }
+
+        // Funciones auxiliares
+        function mostrarFrase(data) {
+            let contenidoHTML = '';
+
+            if (data.records && data.records.length > 0) {
+                const frase = data.records[0];
+                contenidoHTML = crearHTMLFrase(frase);
+            } else if (data.frase) {
+                contenidoHTML = crearHTMLFrase(data);
+            } else if (data.message) {
+                contenidoHTML = `<div class="error">${data.message}</div>`;
+            } else {
+                contenidoHTML = `<div class="error">No hay frases disponibles.</div>`;
+            }
+
+            fraseContainer.innerHTML = contenidoHTML;
+            fraseContainer.classList.add('fade-in');
+        }
+
+        function crearHTMLFrase(frase) {
+            return `
+                <div class="frase">"${escaparHTML(frase.frase)}"</div>
+                <div class="autor">— ${escaparHTML(frase.autor)}</div>
+                <div class="metadata">
+                    ${escaparHTML(frase.tipo)} - ${escaparHTML(frase.titulo_obra)}
+                    <br>
+                    ${escaparHTML(frase.ubicacion)}
+                </div>
+            `;
+        }
+
+        function mostrarCargando() {
+            fraseContainer.innerHTML = '<div class="loading">Cargando...</div>';
+        }
+
+        function mostrarError(error) {
+            fraseContainer.innerHTML = `
+                <div class="error">
+                    Error al cargar la frase: ${escaparHTML(error.message)}
+                </div>
+            `;
+        }
+
+        function deshabilitarBoton() {
+            btnNuevaFrase.disabled = true;
+        }
+
+        function habilitarBoton() {
+            btnNuevaFrase.disabled = false;
+        }
+
+        // Función de seguridad para escapar HTML
+        function escaparHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Event Listeners
+        btnNuevaFrase.addEventListener('click', cargarFraseAleatoria);
+        document.addEventListener('DOMContentLoaded', cargarFraseAleatoria);
+
+        // Manejo de errores global
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Error no manejado:', event.reason);
+            mostrarError(new Error('Ocurrió un error inesperado'));
+        });
+    </script>
+</body>
+</html>
